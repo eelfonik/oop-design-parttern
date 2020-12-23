@@ -1,4 +1,4 @@
-## Code reuse: strategy pattern
+## 1. Code reuse: strategy pattern
 **Inheritance** is bad because if you add sth in the superclass, every subclass inherits it will have that method.
 
 And if you choose to add **interface**, then you need to implement those methods in every subclass that needs the methods (as Java interface don't have implementation code -- same for typescript interface).
@@ -79,7 +79,13 @@ So, `HAS-A` can be better than `IS-A`. Or rather, favor composition over inherit
 Later if we want to have a duck call device that doesn't inherits `Duck` class, but only do the quack to mimic the call of duck, how we can do it ?
 
 ```java
-public class DuckCall {
+public interface IDuckCall {
+  quackBehaviour: QuackBehavoir;
+  setQuack(QuackBehavoir: qb);
+  performQuack();
+}
+
+public class DuckCall implements IDuckCall {
   quackBehaviour: QuackBehavoir;
 
   public void setQuack(QuackBehavoir: qb) {
@@ -105,7 +111,55 @@ We have the first OO pattern here, **Strategy parttern** : that is, defines *a g
 
 By doing so we achieved the *polymorphism* at runtime, and we compose those algorithms instead of inherit the class that implement them. (N.B. the composition is done by using `setters` in the abstract superclass).
 
-## Loosely coupling: observer pattern
+### Perspective FP
+**Just use partial application with functions as params and we're done!**
+
+As the main point of Strategy pattern is using *Inversion of control* to have runtime *polymorphism* & flexibility.
+
+```typescript
+type FlyBehaviour = () => void;
+type SquackBehaviour = () => void;
+
+interface Duck {
+    fly: FlyBehaviour,
+    squack: SquackBehaviour,
+}
+
+const duck = (flyBehaviour: FlyBehaviour) => (squackBehaviour: SquackBehaviour) : Duck => ({
+  //...common codes for all ducks
+  fly: flyBehaviour,
+  squack: squackBehaviour,
+});
+
+const rubberDuckFly: FlyBehaviour = () => {
+  console.log('rubber fly');
+}
+
+const rubberDuckSquack: SquackBehaviour = () => {
+  console.log('rubber squack');
+}
+
+const superDuckSquack: SquackBehaviour = () => {
+  console.log("super duck gagagag!");
+}
+
+const flyRubberDuck = duck(rubberDuckFly);
+
+// any rubberDuck variations you want
+const regularRubberDuck: Duck = flyRubberDuck(rubberDuckSquack);
+regularRubberDuck.fly();
+//"rubber fly" 
+regularRubberDuck.squack();
+// "rubber squack"
+
+const superRubberDuck: Duck = flyRubberDuck(superDuckSquack);
+superRubberDuck.fly();
+//"rubber fly" 
+superRubberDuck.squack();
+// "super duck gagagag!"
+```
+
+## 2. Loosely coupling: observer pattern
 - We have a publisher (Subject)
 - and multiple subscribers (Observers)
 
@@ -113,7 +167,7 @@ Everytime there's update on the data, the subject publish a notification, then a
 
 So we have a typical *one-to-many* dependency. That is, one object (Subject) changes state, all of its dependents are notified.
 
-Becaus the subject don't care about how many objects are subscirbed to its data, it will deliver notifications to any object that implements the Observer interface. That's why we say they are *loosely coupled*.
+Because the subject don't care about how many objects are subscirbed to its data, it will deliver notifications to any object that implements the Observer interface. That's why we say they are *loosely coupled*.
 
 ### Manual version of obersver pattern:
 
@@ -235,12 +289,343 @@ N.B. the order of notifications is not the same as the order in our code. The `n
 - you need to *subclass* it to use, and it doesn't have an interface you can implements, so you're stuck with the current implementation of this superclass.
 - it has a protected method `setChanged()`, so you cannot "compose" it but only "inherit" it.
 
+In short, the built-in oberservable violates lots of OOP principles and are very limited. 😂
+
 ### Anther example of observer pattern in Java world
 - `AbstractButton` superclass in Swing is a `observable`, it has lots of methods to add/remove listeners (AKA `observers`). And an `ActionListener` can *listen in* on any types of actions on a button.
 
 ### Sumup
 When using **Observer pattern** as a way of achieving loose coupling, generally it's considered more "correct" to use the **pull mode** instead of **push mode**.
 
+### Perspective FP
+**Check the reactive programming, or just the orginal callbacks**
+
+As the main point of Observer pattern is all about loose coupling & message passing.
+
+## 3. Runtime behaviour that transparent to the client: decorator pattern
+### Open-closed principle
+Classes are **closed** to modification, but **open** to extention (so here's where the decorator pattern comes in: you can add new behaviour or changes without altering the classes, but adding your own extention).
+
+If you think about the observer pattern, by adding a new observer, we're actually extending the functionality of a subject (observable) without any changes in the subject itself.
+
+As the decorator need to have the same **supertype** as object it decorates, wth an **existing** abstract superclass, we still need to subclass THAT superclass, in order to get the *type matching*, here the inheritance is not for *getting behaviour* but just for type.
+
+In theory if we don't already have an abstract class in place, we could use an `interface` just fine.
+
+> SideNote: that's where OOP sucks, type is type, and class is not type.
+
+
+```java
+public abstract class Beverage {
+  public enum Size { TALL, GRANDE, VENTI };
+  Size size = Size.TALL;
+
+  String description = "Unknown Beverage";
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setSize(Size size) {
+    this.size = size;
+  }
+
+  public void getSize() {
+    return this.size;
+  }
+
+  public abstract double cost();
+}
+
+// the comdiment abstract decorator
+public abstract class CondimentDecorator extends Beverage {
+  public Beverage beverage;
+
+  public abstract String getDescription();
+
+  public Size getSize() {
+    return beverage.getSize();
+  };
+}
+
+// concrete beverage class
+public class DarkRoast extends Beverage {
+  public DarkRoast() {
+    description = "Dark Roast";
+  }
+
+  public double cost() {
+    if (this.getSize() == Size.TALL) {
+      return 10.00;
+    } else if (this.getSize() == Size.GRANDE) {
+      return 11.00;
+    } else if (this.getSize() == Size.VENTI) {
+      return 12.00;
+    }
+  }
+}
+
+// concrete condiment class
+public class Mocha extends CondimentDecorator {
+  public Mocha(Beverage beverage) {
+    this.beverage = beverage;
+  }
+
+  public String getDescription() {
+    return beverage.getDescription() + ", Mocha";
+  }
+
+  public double cost() {
+    double cost = beverage.cost();
+    if (beverage.getSize() == Size.TALL) {
+      return cost + .20;
+    } else if (beverage.getSize() == Size.GRANDE) {
+      return cost + .30;
+    } else if (beverage.getSize() == Size.VENTI) {
+      return cost + .40;
+    }
+    return cost;
+  }
+}
+
+public class Milk extends CondimentDecorator {
+  public Milk(Beverage beverage) {
+    this.beverage = beverage;
+  }
+
+  public String getDescription() {
+    return beverage.getDescription() + ", Milk";
+  }
+
+  public double cost() {
+    double cost = beverage.cost();
+    if (beverage.getSize() == Size.TALL) {
+      return cost + .30;
+    } else if (beverage.getSize() == Size.GRANDE) {
+      return cost + .40;
+    } else if (beverage.getSize() == Size.VENTI) {
+      return cost + .50;
+    }
+    return cost;
+  }
+}
+
+// now the runtime usage
+public class SomeCoffee {
+  public static void main(String args[]) {
+    Beverage beverage = new DarkRoast();
+    beverage.setSize(Size.VENTI);
+    System.out.println(beverage.getDescription() + " $" + beverage.cost());
+
+    // my eyes... 🙄
+    beverage = new Mocha(beverage);
+    beverage = new Mocha(beverage);
+    beverage = new Milk(beverage);
+
+    System.out.println(beverage.getDescription() + " $" + beverage.cost());
+  }
+}
+```
+
+### Real world usage in Java
+Java I/O package
+
+`java.io` classes use heavily the decorator pattern.
+
+![java-io](./assets/java-io.png)
+
+We can rollup our own version of the input decorator.
+
+```java
+// convert all uppercase characters to lowercase
+
+// FilterInputStream is the abstract class for all decorators
+public class LowerCaseInputStream extends FilterInputStream {
+  public LowerCaseInputStream(InputStream in) {
+    super(in);
+  }
+
+  // to read a byte
+  public int read() throws IOException {
+    int c = in.read();
+    return (c == -1 ? c : Character.toLowerCase((char)c)); // (char) here is an explict type casting
+  }
+
+  // to read an array of bytes
+  public int read(byte[] b, int offset, int len) throws IOException {
+    int result = in.read(b, offset, len);
+    // so the in.read here returns index ???
+    for (int i = offset; i < offset+result; i++) {
+      b[i] = (byte)Character.toLowerCase((char)b[i]);
+    }
+    return result;
+  }
+}
+```
+
+### Some drawbacks of decorator pattern
+- A lot of fraction classes make the whole system less intuitive (like the Java I/O libraries).
+- Some typing issues by inserting decorators, if some code is dependent on specific types.
+
+### Sumup
+- Decorators are **extentions** to existing classes without modification or subclassing
+- Basically it's a set of decorator classes used to **wrap** concrete component classes
+- the decorator need to be the **same type** as the class they decorated, so it's transparent to usage, and we can add as many decorators as we want.
+### Perspective FP
+Is this just higher order function with partial application again ? All we need is a **common interface** that all HOCs (AKA decorators) should satisfy.
+
+```typescript
+enum CoffeeType {
+    Dark = 'dark'
+}
+
+enum CondimentType {
+    Mocha = 'mocha',
+    Milk = 'milk',
+}
+
+enum Size {
+  Tall = 'small',
+  Grande = 'medium',
+  Venti = 'large',
+}
+
+type sizeVaries = Record<Size, number>
+
+interface coffeeConf {
+    cost: sizeVaries,
+    description: string,
+}
+
+interface condimentConf {
+    cost: sizeVaries,
+    name: string,
+}
+
+const COFFEES: Record<CoffeeType, coffeeConf> = {
+    [CoffeeType.Dark]: {
+        cost: {
+            [Size.Tall]: 10,
+            [Size.Grande]: 12,
+            [Size.Venti]: 14,
+        },
+        description: 'best dark coffee in town'
+    }
+}
+
+const CONDIMENTS: Record<CondimentType, condimentConf> = {
+    [CondimentType.Mocha]: {
+        cost: {
+            [Size.Tall]: 3,
+            [Size.Grande]: 4,
+            [Size.Venti]: 5,
+        },
+        name: 'mocha'
+    },
+    [CondimentType.Milk]: {
+        cost: {
+            [Size.Tall]: 4,
+            [Size.Grande]: 5,
+            [Size.Venti]: 6,
+        },
+        name: 'milk'
+    },
+}
+
+// here's the common interface (or type)
+type Beverage = {
+    hasCondiment: boolean,
+    description: string,
+    cost: number,
+    name?: string,
+    size: Size,
+}
+
+// utility 
+const coffeeMaker: (coffeeType: CoffeeType, size?: Size) => Beverage = (coffeeType, size = Size.Tall) => {
+  const {cost, description} = COFFEES[coffeeType];
+  return {
+    description,
+    hasCondiment: false,
+    cost: cost[size],
+    size,
+  }
+}
+
+const addCondiment = (condimentType: CondimentType) => (quantities: number = 1, discount: number = 1) => (beverage: Beverage) => {
+  const {cost, name} = CONDIMENTS[condimentType];
+  const total = beverage.cost + (cost[beverage.size] * quantities * discount);
+  return {
+      ...beverage,
+      hasCondiment: true,
+      description: beverage.hasCondiment ? `${beverage.description} & ${name}` : `${beverage.description} with ${name}`,
+      cost: total
+  };
+}
+
+// application codes
+const addMocha = addCondiment(CondimentType.Mocha);
+const addMilk = addCondiment(CondimentType.Milk);
+
+const darkRoast = coffeeMaker(CoffeeType.Dark);
+const bigDarkRoast = coffeeMaker(CoffeeType.Dark, Size.Venti);
+
+
+// runtime usage
+const order1 = addMilk()(addMocha(2)(darkRoast)); // yea you can just add 2 mocha
+console.log(order1.cost); // 20
+console.log(order1.description) // "best dark coffee in town with mocha & milk" 
+
+const order2 = addMilk(1)(darkRoast);
+console.log(order2.cost); // 14
+console.log(order2.description) // "best dark coffee in town with milk" 
+
+// here the price will change according to the size we choose
+const bigOrder1 = addMilk()(addMocha(2)(bigDarkRoast));
+console.log(bigOrder1.cost); // 30
+console.log(bigOrder1.description) // "best dark coffee in town with mocha & milk" 
+
+
+// later if we want to add a name to the coffee
+const addNameForCoffee = (name: string) => (beverage: Beverage) => {
+    return {
+        name,
+        ...beverage
+    }
+}
+
+// you can add anything you want as long as the returning one satisfied the `Beverage` interface (or rather, type).
+
+// In OOP, it's called "decorator has the same supertype as the object it decorates", so we can swap the decorated object in place of the original object.
+
+const darkRoastWithName = addNameForCoffee('darkRoast!')(darkRoast);
+
+const order3 = addMilk()(addMocha(2)(darkRoastWithName));
+console.log(order3.cost); // 20
+console.log(order3.description) // "best dark coffee in town with mocha & milk" 
+console.log(order3.name); // "darkRoast!"
+
+
+const withDiscount = (discount: number) => (beverage: Beverage) => {
+    return {
+        ...beverage,
+        cost: beverage.cost * discount
+    }
+}
+
+const darkRoastWithNameAndDiscount = withDiscount(0.8)(darkRoastWithName);
+// so we apply different discount for different tops & coffees
+const order4 = addMilk(1, 0.6)(addMocha(2, 0.7)(darkRoastWithNameAndDiscount));
+console.log(order4.cost); // 14.6
+console.log(order4.description) // "best dark coffee in town with mocha & milk" 
+console.log(order4.name); // "darkRoast!"
+
+const bigDarkRoastWithName = addNameForCoffee('big darkRoast!')(bigDarkRoast);
+const order5 = addMilk(1, 0.6)(addMocha(2, 0.7)(bigDarkRoastWithName));
+console.log(order5.cost); // 24.6
+console.log(order5.description) // "best dark coffee in town with mocha & milk" 
+console.log(order5.name); // "big darkRoast!"
+```
 
 
 
