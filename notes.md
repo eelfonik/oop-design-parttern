@@ -291,7 +291,7 @@ N.B. the order of notifications is not the same as the order in our code. The `n
 
 In short, the built-in oberservable violates lots of OOP principles and are very limited. 😂
 
-### Anther example of observer pattern in Java world
+### Another example of observer pattern in Java world
 - `AbstractButton` superclass in Swing is a `observable`, it has lots of methods to add/remove listeners (AKA `observers`). And an `ActionListener` can *listen in* on any types of actions on a button.
 
 ### Sumup
@@ -542,7 +542,7 @@ type Beverage = {
 }
 
 // utility 
-const coffeeMaker: (coffeeType: CoffeeType, size?: Size) => Beverage = (coffeeType, size = Size.Tall) => {
+const coffeeMaker: (coffeeType: CoffeeType) => (size?: Size) => Beverage = (coffeeType: CoffeeType) => (size = Size.Tall) => {
   const {cost, description} = COFFEES[coffeeType];
   return {
     description,
@@ -568,19 +568,21 @@ const addMocha = addCondiment(CondimentType.Mocha);
 const addMilk = addCondiment(CondimentType.Milk);
 
 const darkRoast = coffeeMaker(CoffeeType.Dark);
-const bigDarkRoast = coffeeMaker(CoffeeType.Dark, Size.Venti);
+const smallDarkRoast = darkRoast(Size.Tall);
+const mediumDarkRoast = darkRoast(Size.Grande);
+const bigDarkRoast = darkRoast(Size.Venti);
 
 
-// runtime usage
-const order1 = addMilk()(addMocha(2)(darkRoast)); // yea you can just add 2 mocha
+// runtime
+const order1 = addMilk()(addMocha(2)(smallDarkRoast)); // yea you can just add 2 mocha
 console.log(order1.cost); // 20
 console.log(order1.description) // "best dark coffee in town with mocha & milk" 
 
-const order2 = addMilk(1)(darkRoast);
+const order2 = addMilk(1)(smallDarkRoast);
 console.log(order2.cost); // 14
 console.log(order2.description) // "best dark coffee in town with milk" 
 
-// here the price will change according to the size we choose
+// here the price will change according to the size we choose, automatically for the condiments
 const bigOrder1 = addMilk()(addMocha(2)(bigDarkRoast));
 console.log(bigOrder1.cost); // 30
 console.log(bigOrder1.description) // "best dark coffee in town with mocha & milk" 
@@ -598,14 +600,14 @@ const addNameForCoffee = (name: string) => (beverage: Beverage) => {
 
 // In OOP, it's called "decorator has the same supertype as the object it decorates", so we can swap the decorated object in place of the original object.
 
-const darkRoastWithName = addNameForCoffee('darkRoast!')(darkRoast);
+const smallDarkRoastWithName = addNameForCoffee('darkRoast!')(smallDarkRoast);
 
-const order3 = addMilk()(addMocha(2)(darkRoastWithName));
+const order3 = addMilk()(addMocha(2)(smallDarkRoastWithName));
 console.log(order3.cost); // 20
 console.log(order3.description) // "best dark coffee in town with mocha & milk" 
 console.log(order3.name); // "darkRoast!"
 
-
+// and if we want to apply some discount
 const withDiscount = (discount: number) => (beverage: Beverage) => {
     return {
         ...beverage,
@@ -613,9 +615,9 @@ const withDiscount = (discount: number) => (beverage: Beverage) => {
     }
 }
 
-const darkRoastWithNameAndDiscount = withDiscount(0.8)(darkRoastWithName);
+const smallDarkRoastWithNameAndDiscount = withDiscount(0.8)(smallDarkRoastWithName);
 // so we apply different discount for different tops & coffees
-const order4 = addMilk(1, 0.6)(addMocha(2, 0.7)(darkRoastWithNameAndDiscount));
+const order4 = addMilk(1, 0.6)(addMocha(2, 0.7)(smallDarkRoastWithNameAndDiscount));
 console.log(order4.cost); // 14.6
 console.log(order4.description) // "best dark coffee in town with mocha & milk" 
 console.log(order4.name); // "darkRoast!"
