@@ -75,6 +75,8 @@ public class DuckSimulator {
 
 So, `HAS-A` can be better than `IS-A`. Or rather, favor composition over inheritance.
 
+> question: but what if we need to change the interface itself ? We add new interface to be implemented ? But overtime with all the changes we'll end up with a lot of fractions of tiny interfaces ?
+
 ### Quiz
 Later if we want to have a duck call device that doesn't inherits `Duck` class, but only do the quack to mimic the call of duck, how we can do it ?
 
@@ -302,7 +304,7 @@ When using **Observer pattern** as a way of achieving loose coupling, generally 
 
 As the main point of Observer pattern is all about loose coupling & message passing.
 
-## 3. Runtime behaviour that transparent to the client: decorator pattern
+## 3. Runtime behaviour transparent to the client: decorator pattern
 ### Open-closed principle
 Classes are **closed** to modification, but **open** to extention (so here's where the decorator pattern comes in: you can add new behaviour or changes without altering the classes, but adding your own extention).
 
@@ -418,6 +420,7 @@ public class SomeCoffee {
     System.out.println(beverage.getDescription() + " $" + beverage.cost());
 
     // my eyes... 🙄
+    // here's how you decorate the beverage
     beverage = new Mocha(beverage);
     beverage = new Mocha(beverage);
     beverage = new Milk(beverage);
@@ -564,6 +567,7 @@ const addCondiment = (condimentType: CondimentType) => (quantities: number = 1, 
 }
 
 // application codes
+// in OOP term, here we're using factory pattern already.
 const addMocha = addCondiment(CondimentType.Mocha);
 const addMilk = addCondiment(CondimentType.Milk);
 
@@ -628,6 +632,17 @@ console.log(order5.cost); // 24.6
 console.log(order5.description) // "best dark coffee in town with mocha & milk" 
 console.log(order5.name); // "big darkRoast!"
 ```
+
+## 4. Factory pattern
+Solve the instantiation problem. (instead of just a `new` keyword).
+
+The difference between the *factory pattern* and *strategy pattern* is that, the factory pattern deals with dynamical creation (*not necessarily at runtime*, but rather the abstract superclass has **no knowlegde** about what the concrete subsclasses produced), and strategy pattern is focus on dynamical runtime behaviours. And often they're used together.
+
+There's nothing wrong with `new`, but as the instanciation of classes are really the **varied** part of application, it makes sense to **seperate** this from a concrete implementation to somewhere, so we can have more flexibility.
+
+
+
+
 
 
 
