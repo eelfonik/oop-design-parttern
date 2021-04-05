@@ -52,7 +52,7 @@ class SuperQuack implements QuackBehaviour {
   }
 }
 
-// Then the subclass that extends the superclass by defining which quack behaviour it wants
+// Then the subclass that extends the abstract superclass by defining which quack behaviour it wants
 public class RubberDuck extends Duck {
   public RubberDuck() {
     // N.B. here in the constructor we're still making a new instance of a concrete implementation class, but we can dynamically change it at runtime
@@ -545,7 +545,7 @@ type Beverage = {
 }
 
 // utility 
-const coffeeMaker: (coffeeType: CoffeeType) => (size?: Size) => Beverage = (coffeeType: CoffeeType) => (size = Size.Tall) => {
+const coffeeMaker = (coffeeType: CoffeeType) => (size = Size.Tall) => {
   const {cost, description} = COFFEES[coffeeType];
   return {
     description,
@@ -633,12 +633,96 @@ console.log(order5.description) // "best dark coffee in town with mocha & milk"
 console.log(order5.name); // "big darkRoast!"
 ```
 
-## 4. Factory pattern
+## 4. Dependency Inversion: Factory pattern
 Solve the instantiation problem. (instead of just a `new` keyword).
 
 The difference between the *factory pattern* and *strategy pattern* is that, the factory pattern deals with dynamical creation (*not necessarily at runtime*, but rather the abstract superclass has **no knowlegde** about what the concrete subsclasses produced), and strategy pattern is focus on dynamical runtime behaviours. And often they're used together.
 
 There's nothing wrong with `new`, but as the instanciation of classes are really the **varied** part of application, it makes sense to **seperate** this from a concrete implementation to somewhere, so we can have more flexibility.
+
+**We have 2 types of factory methods**
+- Parameterized factory method: makes more than one object based on passed in params (to make the params type safe, we usually use a `enum` to define the type)
+- Normal factory method: makes just one object
+
+**Along with another factory pattern**
+- Abstract factory
+
+> Q: Factory methods create object by inheritance, And Abstract factory creates objects by composition?
+
+> A: Normally the factory methods return only one object (either parameterized or not), and defined as an abstract class/interface, then any class use it should `extends` it, and decide which concrete class to instantiate. So the main goal is **defer instantiation to subclasses**.
+
+> But abstract factory is a big interface that groups lots of methods, and anytime you want to add a new method, you need to modify the interface. Those methods are usually *factory methods*. And when you use the factory, you'll `implements` this interface. The main goal is **not depending on concrete classes**.
+
+### Dependency inversion
+If we directly `new` an object, then we are depending on the concrete classes. We need to *invert* this dependency, by **depends upon abstractions, do not depends on concrete classes**.
+
+> Q: What's the difference between this & previous [Program to interfaces, not implementations](###Program-to-interfaces-not-implementations) ? 
+
+> A: It goes further, previously we are just saying the creation of a concrete `Duck` class should extends an abstract superclass that define the behaviours it needs. But inside the concrete class, we're still `new`ing the actual behaviour class we need. For *factory pattern*, we want both the behaviour class & the Duck class depend on the same abstraction (which is already the case in the above code example `QuackBehaviour`), and replacing all `new`s inside a concrete class by a factory. Let's see the difference:
+
+```java
+//...same QuackBehaviour interface & its concrete classes as before
+
+// Let's define an enum
+publuc enum QuackType {
+  NORMAL,
+  SUPER,
+}
+
+// Here's the static factory responsible for instantiate anything related with behaviours. I don't like `extends` or `implements`...😬
+public class QuackBehaviourFactory {
+  public static QuackBehaviourFactory getQuackBehaviour(QuackType type) {
+    if (type == QuackType.NORMAL) {
+      return new Quack();
+    }
+    if (type == QuackType.SUPER) {
+      return new SuperQuack();
+    }
+  }
+}
+
+// abstract superclass
+public abstract class Duck {
+  // same as before
+
+  //constructor
+  public Duck(QuackType type) {
+    this.quackBehaviour = QuackBehaviourFactory.getQuackBehaviour(type);
+  }
+
+  //...
+
+  public void setQuackBehaviour(QuackType type) {
+    this.quackBehaviour = QuackBehaviourFactory.getQuackBehaviour(type);
+  }
+}
+
+// Then the subclass that extends the abstract superclass by defining which quack behaviour it wants
+public class RubberDuck extends Duck {
+  public RubberDuck() {
+    // pass the quack type instead of directly using a `new` here
+    super(QuackType.NORMAL);
+  }
+}
+
+```
+
+#### Why we call it a dependency inversion ?
+
+Because now it's the subclass "decide" which class it wants to depends on, instead of controlled by the superclass. ( But the previous example is already the case no????? I don't see the factory pattern has anything to do with this principle...🙄, it's just a way to centeralize the creation of instances ???)
+
+### 3 Rules that certainly will be broken but good to keep in mind
+- No variable should hold a reference to a concrete class (don't `new` things directly in another class, as the instanciation is a **varied** part of the code)
+- No class should derive from a concrete class (That is, don't `extends` some concrete class, if you need to do so, create `type`/`interface`/`abstract class`)
+- No method overrides an already implemented method in its base(super) class (If you need to do so, make those methods as **abstract** in the super class, as they are not that universal to share with all its sub-classes)
+
+### Sumup
+Factory pattern is used to *encapsulate* object creation, so you can **decouple** your code from concrete classes, either by *defering* the class creation to subclasses, or create abstrations (`interface`) to depends on.
+### Perspective FP
+Higher order functions with **partial application** are a way to defer the execution, so just use them. You'll have all flexibilty of runtime/creation time, and in terms of maintainance(or changes in another word), it's the same changes you need to do with the "abstract factory" interface.
+
+
+
 
 
 
